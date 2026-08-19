@@ -6,9 +6,12 @@ import json
 from dataclasses import dataclass
 from typing import Literal
 
+import groq
 from groq import Groq # IA com Free tier generoso
 
-MODELO_PADRAO = "llama-3.3-70b-versatile"
+from core.ssl_fix import criar_http_client
+
+MODELO_PADRAO = "openai/gpt-oss-120b"
 
 ACOES_VALIDAS = {"adicionar_linha", "atualizar_celula", "remover_linha"}
 
@@ -60,16 +63,36 @@ def interpretar(
 ) -> Acao:
     """Chama a Groq API e devolve a ação estruturada correspondente à instrução."""
 
-    cliente = Groq(api_key=api_key)
-    resposta_bruta = cliente.chat.completions.create(
-        model=modelo,
-        messages=[
-            {"role": "system", "content": _prompt_sistema(colunas, amostra)},
-            {"role": "user", "content": instrucao},
-        ],
-        response_format={"type": "json_object"},
-        temperature=0,
-    )
+    cliente = Groq(api_key=api_key, http_client=criar_http_client())
+    try:
+        resposta_bruta = cliente.chat.completions.create(
+            model=modelo,
+            messages=[
+                {"role": "system", "content": _prompt_sistema(colunas, amostra)},
+                {"role": "user", "content": instrucao},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0,
+        )
+    except groq.AuthenticationError as exc:
+        raise InterpretacaoError(
+            "Chave da API inválida ou expirada. Confira a chave na barra lateral."
+        ) from exc
+    except groq.RateLimitError as exc:
+        raise InterpretacaoError(
+            "Limite de uso da IA atingido no momento. Aguarde um pouco e tente de novo."
+        ) from exc
+    except groq.APIConnectionError as exc:
+        raise InterpretacaoError(
+            "Não foi possível conectar ao servidor da IA. Verifique sua internet e tente de novo."
+        ) from exc
+    except groq.APIStatusError as exc:
+        raise InterpretacaoError(
+            f"O servidor da IA retornou um erro (código {exc.status_code}). Tente de novo em instantes."
+        ) from exc
+    except groq.GroqError as exc:
+        raise InterpretacaoError("Não foi possível falar com a IA agora. Tente de novo.") from exc
+
     resposta = resposta_bruta.choices[0].message.content
 
     # Interpretar a resposta da IA como JSON

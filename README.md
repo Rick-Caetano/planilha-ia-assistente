@@ -1,7 +1,7 @@
-# 📊 Assistente de Planilhas com IA
+# Assistente de Planilhas com IA
 
 Um app web simples que deixa uma pessoa **sem conhecimento técnico** editar uma
-planilha `.xlsx` descrevendo o que quer em português comum — em vez de mexer
+planilha `.xlsx` descrevendo o que quer em português comum, em vez de mexer
 direto nas células.
 
 > "adiciona um cliente chamado Maria Souza, telefone 31999998888, status pendente"
@@ -25,7 +25,7 @@ linguagem natural.
    **Groq API** (modelo Llama 3.3, gratuito), que responde só com um JSON
    estruturado (`{"tipo": ..., "dados": ...}`).
 3. `componentes/core/sheet_manager.py` valida a ação contra as colunas e o
-   número de linhas reais do arquivo antes de aplicar — se a IA "alucinar"
+   número de linhas reais do arquivo antes de aplicar. Se a IA "alucinar"
    uma coluna que não existe ou uma linha fora do intervalo, a ação é
    rejeitada com uma mensagem clara em vez de corromper o arquivo.
 4. Só depois de o usuário clicar em **Aplicar** a planilha é regravada.
@@ -56,12 +56,12 @@ streamlit run componentes/app.py
 ```
 
 O app já sobe com uma planilha de exemplo (`componentes/data/planilha_exemplo.xlsx`,
-dados fictícios) — ou envie a sua própria pela barra lateral.
+dados fictícios), ou envie a sua própria pela barra lateral.
 
 ## Instalação para quem não é técnico (Windows)
 
 Quem for só usar o app (sem editar código) não precisa instalar Python nem
-mexer em terminal — a Release do GitHub traz um `Instalar.bat` que:
+mexer em terminal. A Release do GitHub traz um `Instalar.bat` que:
 
 1. Detecta se já existe Python instalado; se não existir, baixa e instala o
    Python 3.11 oficial silenciosamente.
@@ -94,5 +94,5 @@ anexar numa Release do GitHub.
 - Uma ação por instrução (não interpreta "faz isso e mais aquilo" numa frase
   só).
 - Funciona com uma aba por vez.
-- A IA só pode agir sobre colunas que já existem na planilha — criar coluna
+- A IA só pode agir sobre colunas que já existem na planilha. Criar coluna
   nova precisa ser feito manualmente, por segurança.

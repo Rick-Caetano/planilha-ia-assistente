@@ -15,7 +15,7 @@ class SheetManager:
     """Envolve um arquivo .xlsx e expõe operações seguras de leitura/escrita.
 
     Nunca aplica uma ação sem antes validar que ela é compatível com as
-    colunas reais da planilha carregada — evita que uma alucinação da IA
+    colunas reais da planilha carregada, evita que uma alucinação da IA
     (nome de coluna inventado, linha fora do intervalo) corrompa o arquivo.
     """
 

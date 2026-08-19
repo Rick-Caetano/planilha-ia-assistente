@@ -1,4 +1,6 @@
 .env
+config.json
+logs/
 __pycache__/
 *.pyc
 .venv/
