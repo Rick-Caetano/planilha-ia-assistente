@@ -12,8 +12,11 @@ from dotenv import load_dotenv
 
 from core.ai_parser import InterpretacaoError, interpretar
 from core.config_manager import carregar_config, salvar_api_key
+from core.errors import SheetError
 from core.logger import logger, registrar_inicio
-from core.sheet_manager import SheetError, SheetManager
+from core.preview_render import renderizar_detalhe
+from core.sheet_manager import SheetManager
+from core.sugestoes_manager import carregar_sugestoes
 from core.ui_helpers import STREAMLIT_MODERNO, icone_html, kw_icone
 
 registrar_inicio()
@@ -122,6 +125,7 @@ if "manager" not in st.session_state or st.session_state.get("_arquivo_nome") !=
     try:
         st.session_state.manager = SheetManager(origem)
         st.session_state._arquivo_nome = arquivo.name if arquivo else "exemplo"
+        st.session_state.plano_pendente = None
     except Exception as exc:
         tratar_erro("Não foi possível abrir essa planilha. Confira se o arquivo .xlsx não está corrompido.", exc)
         st.stop()
@@ -132,10 +136,22 @@ st.subheader("Planilha atual")
 st.dataframe(manager.dataframe, **({"width": "stretch"} if STREAMLIT_MODERNO else {"use_container_width": True}))
 
 st.subheader("O que você quer fazer?")
+
+sugestoes = carregar_sugestoes()
+if sugestoes:
+    st.caption("Não sabe por onde começar? Clique numa sugestão e ajuste como quiser:")
+    colunas_sugestao = st.columns(3)
+    for indice, sugestao in enumerate(sugestoes):
+        if colunas_sugestao[indice % 3].button(
+            sugestao["rotulo"], key=f"sugestao_{indice}", **({"width": "stretch"} if STREAMLIT_MODERNO else {"use_container_width": True})
+        ):
+            st.session_state.instrucao_texto = sugestao["texto"]
+
 instrucao = st.text_area(
     "Descreva o pedido",
     placeholder="Ex.: adiciona um cliente chamado Maria Souza, telefone 31999998888, status pendente",
     height=80,
+    key="instrucao_texto",
 )
 
 col1, col2 = st.columns(2)
@@ -148,37 +164,47 @@ if interpretar_clicado:
         st.warning("Digite um pedido antes de interpretar.", **kw_icone(":material/info:"))
     else:
         try:
-            acao = interpretar(
+            plano = interpretar(
                 instrucao=instrucao,
                 colunas=manager.columns,
                 amostra=manager.ver_linhas(),
+                total_linhas=manager.total_linhas,
                 api_key=api_key,
             )
-            st.session_state.acao_pendente = acao
+            # Roda o plano de verdade numa cópia descartável do workbook, só para
+            # validar e montar os detalhes da prévia. O arquivo real não é tocado.
+            detalhes = manager.pre_visualizar_plano(plano.acoes)
+            st.session_state.plano_pendente = plano
+            st.session_state.detalhes_pendentes = detalhes
         except InterpretacaoError as exc:
-            st.session_state.acao_pendente = None
+            st.session_state.plano_pendente = None
             tratar_erro(f"Não consegui interpretar o pedido: {exc}", exc)
+        except SheetError as exc:
+            st.session_state.plano_pendente = None
+            tratar_erro(f"A IA sugeriu algo que não dá pra aplicar: {exc}", exc)
         except Exception as exc:
-            st.session_state.acao_pendente = None
+            st.session_state.plano_pendente = None
             tratar_erro("Ocorreu um erro inesperado ao falar com a IA.", exc)
 
-acao = st.session_state.get("acao_pendente")
-if acao:
-    st.info(f"Prévia da ação: {acao.resumo}", **kw_icone(":material/visibility:"))
-    st.json({"tipo": acao.tipo, "dados": acao.dados})
+plano = st.session_state.get("plano_pendente")
+if plano:
+    st.write("Veja o que vai acontecer:")
+    for item in plano.acoes:
+        st.write(f"- {item.resumo}")
+
+    with st.expander("Ver todas as alterações em detalhe"):
+        for item, detalhe in zip(plano.acoes, st.session_state.detalhes_pendentes):
+            st.markdown(f"**{item.resumo}**")
+            renderizar_detalhe(item.tipo, detalhe)
+            st.divider()
 
     if st.button("Aplicar na planilha", **kw_icone(":material/save:")):
         try:
-            if acao.tipo == "adicionar_linha":
-                manager.adicionar_linha(acao.dados)
-            elif acao.tipo == "atualizar_celula":
-                manager.atualizar_celula(**acao.dados)
-            elif acao.tipo == "remover_linha":
-                manager.remover_linha(**acao.dados)
-
+            manager.aplicar_plano(plano.acoes)
             manager.salvar()
-            st.session_state.historico.append(acao.resumo)
-            st.session_state.acao_pendente = None
+            for item in plano.acoes:
+                st.session_state.historico.append(item.resumo)
+            st.session_state.plano_pendente = None
             st.success("Alteração aplicada e salva na planilha.", **kw_icone(":material/check_circle:"))
             st.rerun()
         except SheetError as exc:

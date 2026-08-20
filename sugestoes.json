@@ -1,0 +1,36 @@
+{
+  "sugestoes": [
+    {
+      "rotulo": "Adicionar linha",
+      "texto": "Acrescente na planilha um cliente chamado Maria Souza, telefone 31999998888, status pendente"
+    },
+    {
+      "rotulo": "Preencher uma coluna",
+      "texto": "Toda a coluna Status deve ficar com o valor Pendente"
+    },
+    {
+      "rotulo": "Deixar bonita e séria",
+      "texto": "A planilha deve ficar mais bonita e séria: coloque o cabeçalho em negrito e cada linha com uma cor alternada, de forma discreta e profissional"
+    },
+    {
+      "rotulo": "Padrão ABNT",
+      "texto": "Formate a planilha no padrão ABNT: cabeçalho em negrito, fonte tamanho 12 e alinhamento organizado"
+    },
+    {
+      "rotulo": "Criar coluna calculada",
+      "texto": "Crie uma coluna chamada Total que seja o resultado de Quantidade vezes Preço Unitário"
+    },
+    {
+      "rotulo": "Atualizar em massa",
+      "texto": "Mude o status para Concluído em todas as linhas onde a coluna Status for igual a Pendente"
+    },
+    {
+      "rotulo": "Remover linha",
+      "texto": "Remova a linha 3 da planilha"
+    },
+    {
+      "rotulo": "Somar coluna",
+      "texto": "Adicione uma linha de total somando a coluna Valor"
+    }
+  ]
+}
